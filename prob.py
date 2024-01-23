@@ -70,13 +70,8 @@ def cons(x):
     return x[:, 0] == x[:, 0]
     
 
-############################################
-# set the vector field
-############################################
 # this function accepts state and input and returns the next state
-def func_f(x, u):
-    # the vector of functions
-    tau=0.01
+def func_f(x):
     def f(i, x):
         if i == 1:
             return x[:, 1]
@@ -90,13 +85,11 @@ def func_f(x, u):
     return vf
 
 def func_g(x):
-    # the vector of functions
-    tau=0.01
     def g(i):
         if i == 1:
-            return 0
+            return 0*x[:, 1]
         elif i == 2:
-            return 1
+            return 0*x[:, 1] + 1
         else:
             print("Vector function error!")
             exit()
