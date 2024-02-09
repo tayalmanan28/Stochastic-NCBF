@@ -10,6 +10,7 @@ class DifferentialLayer(nn.Module):
 
     def __init__(self, input_size, output_size, activation="ReLu"):
         super(DifferentialLayer, self).__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Create layer weights and biases:
         self.n_output = output_size
@@ -58,6 +59,11 @@ class DifferentialLayer(nn.Module):
 
     def forward(self, h, dh_dx, d2h_d2x, hessian=False):
         # Apply Affine Transformation:
+        if self.weight.device.type != 'cpu':
+            h = h.cuda(self.weight.device.type)
+            dh_dx = dh_dx.cuda(self.weight.device.type)
+            d2h_d2x = d2h_d2x.cuda(self.weight.device.type)
+            
         a = torch.matmul(self.weight, h) + self.bias
 
         # Compute the output:

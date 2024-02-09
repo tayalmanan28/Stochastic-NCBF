@@ -13,12 +13,12 @@ def calc_safe_u(x_domain, h_domain, d_h_domain, d2_h_domain, f_x, g_x,sigma,gamm
         h = h_domain[i]
         dh = d_h_domain[i]
         d2h = d2_h_domain[i]
-        f = f_x[i]
-        g = g_x[i]
+        f = f_x[i].to(dh.device.type)
+        g = g_x[i].to(dh.device.type)
         # print('shape of h, dh, d2h', h.shape, dh.shape, d2h.shape, f.shape, g.shape, sigma.shape)
         A = torch.dot(dh,f)
         B = torch.dot(dh,g)
-        C = torch.dot(sigma, torch.matmul(d2h,sigma))
+        C = torch.dot(sigma.to(dh.device.type), torch.matmul(d2h,sigma.to(dh.device.type)))
 
         psi = A + B*u_r + C + gamma*h
         if psi>=0:

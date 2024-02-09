@@ -60,7 +60,7 @@ def initialize_parameters():
     
 def initialize_nn(num_batches):    
     print("Initialize nn parameters!")
-    cuda_flag = False
+    cuda_flag = True
     filename = f"barrier_function"
     n_dof = 2
     # Construct Hyperparameters:
