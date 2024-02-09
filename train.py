@@ -50,11 +50,12 @@ def print_nn_matlab(model):
 
 # used for initialization and restart
 
-def initialize_parameters():
+def initialize_parameters(n_h_b, d_h_b):
     #initialize the eta variable for scenario verification
+    lambdas=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     print("Initialize eta")
     eta=Variable(torch.normal(mean=torch.tensor([-0.00075]), std=torch.tensor([0.00001])), requires_grad=True)
-    return eta
+    return lambdas, eta
 
 
     
@@ -106,7 +107,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES):
         num_restart += 1
         
         # initialize nn models and optimizers and schedulers
-        eta = initialize_parameters()
+        lambdas, eta = initialize_parameters(superp.N_H_B, superp.D_H_B)
         barr_nn, optimizer_barr, _ = initialize_nn(NUM_BATCHES[3])
         optimizer_eta= torch.optim.SGD([{'params':[eta]}], lr=0.001, momentum=0)
 
@@ -147,6 +148,14 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES):
                 optimizer_barr.step() # gradient descent once
                    
                 optimizer_barr.zero_grad()
+
+                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambdas, superp.lip_b)
+                                
+                if curr_lmi_loss >= -5000:
+                    curr_lmi_loss.backward()
+                    optimizer_barr.step()
+                    
+                    optimizer_barr.zero_grad()
                 
                 optimizer_eta.zero_grad()
                 
@@ -158,6 +167,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES):
                 
                 # update epoch loss
                 epoch_loss += curr_batch_loss.item()
+                lmi_loss += curr_lmi_loss
                 eta_loss += curr_eta_loss
 
                 if superp.VERBOSE == 1:

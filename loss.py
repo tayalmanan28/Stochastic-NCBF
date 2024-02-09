@@ -63,7 +63,7 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_b
     u, l = safe.calc_safe_u(x_domain, h_domain, d_h_domain, d2_h_domain,f_x, g_x,sigma, gamma)
         
     # vector_domain = prob.func_f(x_domain) # compute vector field at domain
-    # print('Shape of del h & dynamics', h_domain.shape, d_h_domain.shape, d2_h_domain.shape, vector_domain.shape, x_domain.shape)
+    print('Shape of del h & dynamics', h_domain.shape, d_h_domain.shape, d2_h_domain.shape)
     loss_lie=torch.relu(l.to(device) + superp.TOL_LIE - eta)
         
     total_loss = superp.DECAY_SAFE * torch.sum(loss_safe) + superp.DECAY_UNSAFE * torch.sum(loss_unsafe) \
@@ -72,9 +72,9 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_b
     # return total_loss is a tensor, max_gradient is a scalar
     return total_loss
 
-def calc_lmi_loss(barr_nn,lambdas_b, lip_b):
+def calc_lmi_loss(barr_nn,lambdas, lip_b):
     
-      lmi_loss = -0.001*(torch.logdet(lipschitz(lambdas_b, lip_b, barr_nn)) ) #+ torch.logdet(lipschitz(lambdas_c, lip_c, ctrl_nn))
+      lmi_loss = -0.001*(torch.logdet(lipschitz(lambdas, lip_b, barr_nn)) )
     
       return lmi_loss
 
