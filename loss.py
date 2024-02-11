@@ -62,7 +62,7 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_b
 
     f_x = prob.func_f(x_domain)
     g_x = prob.func_g(x_domain)
-    sigma = 0.1*torch.ones([2])
+    sigma = 0*torch.ones([2])
     gamma = 1
 
     u, l = safe.calc_safe_u(x_domain, h_domain, d_h_domain, d2_h_domain,f_x, g_x,sigma, gamma)

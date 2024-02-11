@@ -5,12 +5,15 @@ import numpy as np
 import superp_init as superp # parameters
 import loss # computing loss
 import lrate
-
+import os
 import time
 
 from deep_differential_network.differential_hessian_network import DifferentialNetwork
 from deep_differential_network.replay_memory import PyTorchReplayMemory
 from deep_differential_network.utils import jacobian, hessian, jacobian_auto
+
+from utils.logger import DataLog
+from utils.make_train_plots import make_train_plots
 
 LOAD_MODEL = False
 RENDER = True
@@ -99,7 +102,21 @@ def initialize_nn(num_batches):
     return barr_nn, optimizer,scheduler
 
 def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES):
+    logger = DataLog()
+    log_dir = "experiments/"
+    working_dir = os.getcwd()
+
+    if os.path.isdir(log_dir) == False:
+        os.mkdir(log_dir)
+
+    previous_dir = os.getcwd()
     
+    os.chdir(log_dir)
+    if os.path.isdir('iterations') == False: os.mkdir('iterations')
+    if os.path.isdir('logs') ==False: os.mkdir('logs')
+
+    log_dir = os.getcwd()
+    os.chdir(working_dir)
     num_restart = -1
 
     ############################## the main training loop ##################################################################
@@ -172,7 +189,16 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES):
 
                 if superp.VERBOSE == 1:
                     print("restart: %-2s" % num_restart, "epoch: %-3s" % epoch, "batch: %-5s" % batch_index, "batch_loss: %-25s" % curr_batch_loss.item(), \
-                          "epoch_loss: %-25s" % epoch_loss, "lmi loss: % 25s" %lmi_loss, "eta loss: % 25s" %eta_loss, "eta:" % eta)
+                          "epoch_loss: %-25s" % epoch_loss, "lmi loss: % 25s" %lmi_loss, "eta loss: % 25s" %eta_loss, "eta: % 25s" % eta)
+                          
+            logger.log_kv('epoch', epoch)
+            logger.log_kv('epoch_loss', epoch_loss)
+            logger.log_kv('lmi_loss', lmi_loss)
+            logger.log_kv('eta_loss', eta_loss)
+
+            logger.save_log(log_dir+"/logs")
+            make_train_plots(log = logger.log, keys=['epoch', 'epoch_loss'], save_loc=log_dir+"/logs")
+            # make_train_plots(log = logger.log, keys=['epoch', 'lmi_loss'], save_loc=log_dir+"logs")
 
 
             if (epoch_loss <= 0) and (lmi_loss <= 0) and (eta_loss <= 0):
