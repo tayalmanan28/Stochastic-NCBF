@@ -96,7 +96,7 @@ class DifferentialNetwork(nn.Module):
         self.n_input = n_input
         self.n_width = kwargs.get("n_width", 20)
         self.n_hidden = kwargs.get("n_depth", 1)
-        self.n_output = kwargs.get("n_output", 2)
+        self.n_output = kwargs.get("n_output", 1)
         non_linearity = kwargs.get("activation", "ReLu")
 
         # Initialization of the layers:

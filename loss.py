@@ -12,8 +12,8 @@ import safe
 # given the training data, compute the loss
 ############################################
 
-def lipschitz(lambdas, lip, model):
-    
+def lipschitz(lambdas, lip, model, diff):
+    device = model.device.type
     weights=[];
     layer=0;
     for p in model.parameters():
@@ -21,16 +21,20 @@ def lipschitz(lambdas, lip, model):
             weights.append(p.data)
         layer = layer+1
     
+    weights[0] = weights[0][0, :, :]
+    weights[1] = weights[1][0, :, :]
+
+    # if diff == 1:
+    #     weights[1] = torch.matmul(weights[0].T, torch.diag(weights[1]))
+
     T= torch.diag(lambdas)
     
-    diag_items= [lip**2*torch.eye(superp.DIM_S),  2*T,  torch.eye(1)]
-    
+    diag_items= [lip**2*torch.eye(superp.DIM_S).to(device),  2*T,  torch.eye(1).to(device)]
     subdiag_items= [torch.matmul(T, weights[0]), weights[-1]]
     
-    dpart = torch.block_diag(diag_items[0],diag_items[1],diag_items[2])
-    
+    dpart = torch.block_diag(diag_items[0],diag_items[1],diag_items[2])    
     spart= F.pad(torch.block_diag(subdiag_items[0],subdiag_items[1]), (0,1, superp.DIM_S, 0))
-    
+        
     return dpart-spart-torch.transpose(spart,0,1)
     
     
@@ -51,9 +55,10 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_b
     
     # compute loss of domain
     h_domain, d_h_domain, d2_h_domain = barr_nn(x_domain, hessian=True)
+
     h_domain = h_domain[:, 0, :]
     d_h_domain = d_h_domain[:, 0, :]
-    d2_h_domain = d2_h_domain[:, 0, :]
+    d2_h_domain = d2_h_domain[:, :, 0, :]
 
     f_x = prob.func_f(x_domain)
     g_x = prob.func_g(x_domain)
@@ -63,7 +68,8 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_b
     u, l = safe.calc_safe_u(x_domain, h_domain, d_h_domain, d2_h_domain,f_x, g_x,sigma, gamma)
         
     # vector_domain = prob.func_f(x_domain) # compute vector field at domain
-    print('Shape of del h & dynamics', h_domain.shape, d_h_domain.shape, d2_h_domain.shape)
+    # print('Shape of del h & dynamics', h_domain.shape, d_h_domain.shape, d2_h_domain.shape)
+    
     loss_lie=torch.relu(l.to(device) + superp.TOL_LIE - eta)
         
     total_loss = superp.DECAY_SAFE * torch.sum(loss_safe) + superp.DECAY_UNSAFE * torch.sum(loss_unsafe) \
@@ -73,13 +79,17 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_b
     return total_loss
 
 def calc_lmi_loss(barr_nn,lambdas, lip_b):
-    
-      lmi_loss = -0.001*(torch.logdet(lipschitz(lambdas, lip_b, barr_nn)) )
-    
-      return lmi_loss
+    lip = torch.tensor(lip_b)
+    device = barr_nn.device.type
+    # device = 'cuda'
+    if barr_nn.device != 'cpu':
+        lambdas = lambdas.cuda(device)
+        lip = lip.cuda(device)
+    lmi_loss = -0.001*(torch.logdet(lipschitz(lambdas, lip, barr_nn, 0)) )
+
+    return lmi_loss
 
 def calc_eta_loss(eta, lip_b):
     
-     loss_eta=torch.relu(torch.tensor(lip_b*(prob.L_x)*data.eps+lip_b*data.eps) + eta)
-    
-     return loss_eta
+    loss_eta=torch.relu(torch.tensor(lip_b*(prob.L_x)*data.eps+lip_b*data.eps) + eta)
+    return loss_eta
