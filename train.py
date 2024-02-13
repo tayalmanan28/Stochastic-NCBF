@@ -15,7 +15,7 @@ from deep_differential_network.utils import jacobian, hessian, jacobian_auto
 from utils.logger import DataLog
 from utils.make_train_plots import make_train_plots
 
-LOAD_MODEL = False
+LOAD_MODEL = True
 RENDER = True
 SAVE_MODEL = True
 SAVE_PLOT = False
@@ -57,7 +57,7 @@ def initialize_parameters(n_h_b, d_h_b):
     #initialize the eta variable for scenario verification
     lambdas=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     print("Initialize eta")
-    eta=Variable(torch.normal(mean=torch.tensor([-0.00075]), std=torch.tensor([0.00001])), requires_grad=True)
+    eta=Variable(torch.normal(mean=torch.tensor([-0.00275]), std=torch.tensor([0.00001])), requires_grad=True)
     return lambdas, eta
 
     
@@ -76,11 +76,11 @@ def initialize_nn(num_batches):
 
     # Load existing model parameters:
     if LOAD_MODEL:
-        load_file = f"./models/{filename}.torch"
-        state = torch.load(load_file, map_location='cpu')
+        # load_file = f"./models/{filename}.torch"
+        # state = torch.load(load_file, map_location='cpu')
 
-        barr_nn = DifferentialNetwork(n_dof, **state['hyper'])
-        barr_nn.load_state_dict(state['state_dict'])
+        barr_nn = torch.load('experiments/di_2_1_0.1/iterations/barr_nn_200') #DifferentialNetwork(n_dof, **state['hyper'])
+        # barr_nn.load_state_dict(state['state_dict'])
 
     else:
         barr_nn = DifferentialNetwork(n_dof, **hyper)
@@ -100,9 +100,9 @@ def initialize_nn(num_batches):
 
     return barr_nn, optimizer,scheduler
 
-def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES):
+def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
     logger = DataLog()
-    log_dir = "experiments/"
+    log_dir = "experiments/" + system+"_2_cont"
     working_dir = os.getcwd()
 
     if os.path.isdir(log_dir) == False:

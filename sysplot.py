@@ -2,60 +2,57 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import torch 
-import args
+# import args
 from matplotlib import cm
 import math
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.patches import Rectangle
+import safe
+import sys1
+import random
+# import main
 
-plt.rcParams.update({
-    "text.usetex": True})
+data, prob = sys1.system_data('di')
 
-def sysdyn(x,ctrl_nn):
-    tau=0.01;
-    f=np.empty([1,2])
-    xt=torch.tensor(x)
-    cont=ctrl_nn(xt).detach().numpy()
-    f[0,0]=xt[0]+ tau*xt[1] 
-    f[0,1]=xt[1]+tau*(9.8 * (torch.sin(xt[0])) + cont)
-    return f, cont
+mpl.rcParams.update(mpl.rcParamsDefault)
 
-barr_nn=torch.load('saved_weights/barr_nn')
-ctrl_nn=torch.load('saved_weights/ctrl_nn')
+barr_nn=torch.load('experiments/di_2_cont/iterations/barr_nn_12')
 
-s=20
-t=51
+# s=20
+t=25000
 
-fig,axs = plt.subplots(3,1, figsize=(7, 15))
+# fig,axs = plt.subplots(3,1, figsize=(7, 15))
 
-x=np.empty([t,2])
-cont=np.empty([t,1])
+x = torch.zeros([t,2])
 
-for j in range(s):
-    x[0,0]=args.init[0][0]+(args.init[0][1]-args.init[0][0])*np.random.rand(1,1)
-    x[0,1]=args.init[1][0]+(args.init[1][1]-args.init[1][0])*np.random.rand(1,1)
-    for i in range(t-1):
-        x[i+1,:], cont[i,0] =sysdyn(x[i,:],ctrl_nn)
-        # if x[i+1,0] >= args.x_max[0]:
-        #     x[i+1,0] = args.x_max[0]
-        # elif x[i+1,0] <= args.x_min[0]:
-        #     x[i+1,0] = args.x_min[0]
-        # if x[i+1,1] >= args.x_max[1]:
-        #     x[i+1,1] = args.x_max[1]
-        # elif x[i+1,1] <= args.x_min[1]:
-        #     x[i+1,1] = args.x_min[1]  
-    cont[t-1,0]=ctrl_nn(torch.tensor(x[t-1,:]))
-    axs[0].step(range(0,t),x[:,0])
-    axs[1].step(range(0,t),x[:,1],)
-    axs[2].step(range(0,t),cont[:,0])
+for i in range(t):
+    x[i,0] = random.uniform(-5.0, 5.0)
+    x[i,1] = random.uniform(-5.0, 5.0)
+    
 
-axs[0].set_xlabel("time step")
-axs[1].set_xlabel("time step")
-axs[2].set_xlabel("time step")
-#axs[0].set_ylabel("$x_1$")
-#axs[1].set_ylabel("$x_2$")
 
-plt.savefig("stepplot.png",dpi=1200)    
+# x[:, 0] = torch.linspace(-5, 5, t)
+# x[:, 1] = torch.linspace(-5, 5, t)
+
+h, _ = barr_nn(x, hessian=False)
+h = h[:, 0, :]
+
+# print(x.shape, h.shape)
+for i in range(t):
+    if h[i]>=0:
+        plt.scatter(x[i,0], x[i,1], c='blue', s=1)
+    else:
+        plt.scatter(x[i,0], x[i,1], c='red', s=1)
+
+currentAxis = plt.gca()
+currentAxis.add_patch(Rectangle((0 - 1, 0 - 1), 2, 2, fill=None, alpha=1))
+
+currentAxis2 = plt.gca()
+currentAxis2.add_patch(Rectangle((0 - 3, 0 - 3), 6, 6, fill=None, alpha=1))
+
+plt.savefig("experiments/di_2_cont/barr_plot.png",dpi=1200)    
 plt.show()    
+
 
 
 

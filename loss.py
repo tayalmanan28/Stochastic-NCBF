@@ -50,11 +50,11 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_b
     if h_safe.device != 'cpu':
         eta = eta.cuda(device)
         
-    loss_safe = torch.relu(h_safe - superp.gamma + superp.TOL_SAFE - eta) #tolerance
+    loss_safe = torch.relu(-h_safe - superp.gamma + superp.TOL_SAFE + eta) #tolerance
 
     # compute loss of unsafe
     h_unsafe, d_h_unsafe, d2_h_unsafe = barr_nn(x_unsafe, hessian=True)
-    loss_unsafe = torch.relu((- h_unsafe) + superp.lamda + superp.TOL_UNSAFE - eta) #tolerance
+    loss_unsafe = torch.relu(h_unsafe - superp.lamda - superp.TOL_UNSAFE - eta) #tolerance
     
     # compute loss of domain
     h_domain, d_h_domain, d2_h_domain = barr_nn(x_domain, hessian=True)

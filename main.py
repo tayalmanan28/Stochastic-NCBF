@@ -25,7 +25,7 @@ def barr_nn(system):
     
     # train and return the learned model
     time_start_train = time.time()
-    res = train.itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES) 
+    res = train.itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system) 
     time_end_train = time.time()
     
     print("\nData generation totally costs:", time_end_data - time_start_data)
