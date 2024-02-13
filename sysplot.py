@@ -4,7 +4,6 @@ import numpy as np
 import torch 
 import args
 from matplotlib import cm
-import prob
 import math
 from mpl_toolkits.mplot3d import Axes3D
 

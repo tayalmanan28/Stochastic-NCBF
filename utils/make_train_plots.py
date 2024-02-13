@@ -59,6 +59,10 @@ def make_train_plots(log = None,
     plt.plot(log[keys[0]], log[keys[1]])
     plt.title(keys[1])
     plt.savefig(save_loc+'/'+keys[1]+'.png', dpi=100)
+    plt.yscale("log")
+    plt.plot(log[keys[0]], log[keys[1]])
+    plt.title(keys[1])
+    plt.savefig(save_loc+'/log_'+keys[1]+'.png', dpi=100)
     plt.close()
 
 def plot_traj(logger, keys_x, keys_y, titles = None,save_loc = None):

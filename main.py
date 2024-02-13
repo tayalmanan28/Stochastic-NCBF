@@ -1,11 +1,15 @@
 import torch
 import torch.nn as nn
-import data
+import sys1
 import train
 import time
 
-def barr_nn():
+system = 'di'
+
+def barr_nn(system):
     # generate training data
+    # sys.sys_data(sys)
+    data, prob = sys1.system_data(system)
     time_start_data = time.time()
     batches_safe, batches_unsafe, batches_domain = data.gen_batch_data()
     time_end_data = time.time()
@@ -33,5 +37,6 @@ def barr_nn():
 
 
 if __name__ =="__main__":
-     barr_nn=barr_nn()
-     torch.save(barr_nn,r'saved_weights/barr_nn')
+     
+     barr_nn = barr_nn(system)
+    #  torch.save(barr_nn,'saved_weights/barr_nn')

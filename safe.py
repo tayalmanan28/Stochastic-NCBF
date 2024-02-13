@@ -20,7 +20,7 @@ def calc_safe_u(x_domain, h_domain, d_h_domain, d2_h_domain, f_x, g_x,sigma,gamm
         B = torch.dot(dh,g)
         C = torch.dot(sigma.to(dh.device.type), torch.matmul(d2h,sigma.to(dh.device.type)))
 
-        psi = A + B*u_r + C + gamma*h
+        psi = A + B*u_r + gamma*h # + C
         if psi>=0:
             u_safe[i] = - psi/(B)
         

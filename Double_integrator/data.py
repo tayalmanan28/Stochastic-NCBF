@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import superp_init as superp
-import prob
+import Double_integrator.prob as prob
 from numpy import linalg as la
 
 

@@ -1,10 +1,13 @@
 import torch
 import torch.nn as nn
 import superp_init as superp
-import prob
 import torch.nn.functional as F
-import data
 import safe
+import sys1
+import main
+
+data, prob = sys1.system_data(main.system)
+
 
 # from deep_differential_network.utils import jacobian, evaluate
 
@@ -70,7 +73,7 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_b
     # vector_domain = prob.func_f(x_domain) # compute vector field at domain
     # print('Shape of del h & dynamics', h_domain.shape, d_h_domain.shape, d2_h_domain.shape)
     
-    loss_lie=torch.relu(l.to(device) + superp.TOL_LIE - eta)
+    loss_lie=torch.relu(-l.to(device) + superp.TOL_LIE + eta)
         
     total_loss = superp.DECAY_SAFE * torch.sum(loss_safe) + superp.DECAY_UNSAFE * torch.sum(loss_unsafe) \
                     + superp.DECAY_LIE * torch.sum(loss_lie) #+ loss_eta

@@ -60,12 +60,11 @@ def initialize_parameters(n_h_b, d_h_b):
     eta=Variable(torch.normal(mean=torch.tensor([-0.00075]), std=torch.tensor([0.00001])), requires_grad=True)
     return lambdas, eta
 
-
     
 def initialize_nn(num_batches):    
     print("Initialize nn parameters!")
     cuda_flag = True
-    filename = f"barrier_function"
+    filename = f"barr_nn"
     n_dof = 2
     # Construct Hyperparameters:
     # Activation must be in ['ReLu', 'SoftPlus']
@@ -77,7 +76,7 @@ def initialize_nn(num_batches):
 
     # Load existing model parameters:
     if LOAD_MODEL:
-        load_file = f"./models/{filename}_loss.torch"
+        load_file = f"./models/{filename}.torch"
         state = torch.load(load_file, map_location='cpu')
 
         barr_nn = DifferentialNetwork(n_dof, **state['hyper'])
@@ -190,7 +189,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES):
                 if superp.VERBOSE == 1:
                     print("restart: %-2s" % num_restart, "epoch: %-3s" % epoch, "batch: %-5s" % batch_index, "batch_loss: %-25s" % curr_batch_loss.item(), \
                           "epoch_loss: %-25s" % epoch_loss, "lmi loss: % 25s" %lmi_loss, "eta loss: % 25s" %eta_loss, "eta: % 25s" % eta)
-                          
+
             logger.log_kv('epoch', epoch)
             logger.log_kv('epoch_loss', epoch_loss)
             logger.log_kv('lmi_loss', lmi_loss)
@@ -198,7 +197,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES):
 
             logger.save_log(log_dir+"/logs")
             make_train_plots(log = logger.log, keys=['epoch', 'epoch_loss'], save_loc=log_dir+"/logs")
-            # make_train_plots(log = logger.log, keys=['epoch', 'lmi_loss'], save_loc=log_dir+"logs")
+            torch.save(barr_nn,log_dir+'/iterations/barr_nn_'+str(epoch))
 
 
             if (epoch_loss <= 0) and (lmi_loss <= 0) and (eta_loss <= 0):
@@ -208,6 +207,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES):
                     print_nn_matlab(barr_nn) # output the learned model
                     print("\nThe value of eta is:")
                     print(eta)
+                    torch.save(barr_nn,log_dir+'/iterations/barr_nn')
 
                 return True # epoch success: end of epoch training
 
