@@ -15,7 +15,7 @@ from deep_differential_network.utils import jacobian, hessian, jacobian_auto
 from utils.logger import DataLog
 from utils.make_train_plots import make_train_plots
 
-LOAD_MODEL = True
+LOAD_MODEL = False
 RENDER = True
 SAVE_MODEL = True
 SAVE_PLOT = False
@@ -55,13 +55,14 @@ def print_nn_matlab(model):
 
 def initialize_parameters(n_h_b, d_h_b):
     #initialize the eta variable for scenario verification
-    lambdas=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
+    lambda_h=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
+    lambda_dh=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     print("Initialize eta")
-    eta=Variable(torch.normal(mean=torch.tensor([-0.00275]), std=torch.tensor([0.00001])), requires_grad=True)
-    return lambdas, eta
+    eta=Variable(torch.normal(mean=torch.tensor([-0.00075]), std=torch.tensor([0.00001])), requires_grad=True)
+    return lambda_h, lambda_dh, eta
 
     
-def initialize_nn(num_batches):    
+def initialize_nn(num_batches, lambda_h, lambda_dh):    
     print("Initialize nn parameters!")
     cuda_flag = True
     filename = f"barr_nn"
@@ -90,7 +91,7 @@ def initialize_nn(num_batches):
         
     # Generate & Initialize the Optimizer:
     t0_opt = time.perf_counter()
-    optimizer = torch.optim.Adam(barr_nn.parameters(),
+    optimizer = torch.optim.Adam([{'params':barr_nn.parameters()},{'params':[lambda_h,lambda_dh]}],
                                     lr=hyper["learning_rate"],
                                     weight_decay=hyper["weight_decay"],
                                     amsgrad=True)
@@ -102,7 +103,7 @@ def initialize_nn(num_batches):
 
 def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
     logger = DataLog()
-    log_dir = "experiments/" + system+"_2_cont"
+    log_dir = "experiments/" + system+"_2_1_0.1_st"
     working_dir = os.getcwd()
 
     if os.path.isdir(log_dir) == False:
@@ -123,8 +124,8 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
         num_restart += 1
         
         # initialize nn models and optimizers and schedulers
-        lambdas, eta = initialize_parameters(superp.N_H_B, superp.D_H_B)
-        barr_nn, optimizer_barr, _ = initialize_nn(NUM_BATCHES[3])
+        lambda_h, lambda_dh, eta = initialize_parameters(superp.N_H_B, superp.D_H_B)
+        barr_nn, optimizer_barr, _ = initialize_nn(NUM_BATCHES[3], lambda_h, lambda_dh)
         optimizer_eta= torch.optim.SGD([{'params':[eta]}], lr=0.001, momentum=0)
 
 
@@ -157,7 +158,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 optimizer_barr.zero_grad() # clear gradient of parameters
                 optimizer_eta.zero_grad()
                 
-                curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_b)
+                curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h)
                 # batch_loss is a tensor, batch_gradient is a scalar
                 curr_batch_loss.backward() # compute gradient using backward()
                 # update weight and bias
@@ -165,7 +166,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                    
                 optimizer_barr.zero_grad()
 
-                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambdas, superp.lip_b)
+                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambda_h, lambda_dh, superp.lip_h, superp.lip_dh)
                                 
                 if curr_lmi_loss >= -5000:
                     curr_lmi_loss.backward()
@@ -175,7 +176,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 
                 optimizer_eta.zero_grad()
                 
-                curr_eta_loss=  loss.calc_eta_loss(eta, superp.lip_b)
+                curr_eta_loss=  loss.calc_eta_loss(eta, superp.lip_h, superp.lip_dh)
                 
                 if curr_eta_loss > 0:
                     curr_eta_loss.backward()

@@ -15,7 +15,7 @@ data, prob = sys1.system_data(main.system)
 # given the training data, compute the loss
 ############################################
 
-def lipschitz(lambdas, lip, model, diff):
+def lipschitz(lambdas, lip, model):
     device = model.device.type
     weights=[];
     layer=0;
@@ -27,9 +27,6 @@ def lipschitz(lambdas, lip, model, diff):
     weights[0] = weights[0][0, :, :]
     weights[1] = weights[1][0, :, :]
 
-    # if diff == 1:
-    #     weights[1] = torch.matmul(weights[0].T, torch.diag(weights[1]))
-
     T= torch.diag(lambdas)
     
     diag_items= [lip**2*torch.eye(superp.DIM_S).to(device),  2*T,  torch.eye(1).to(device)]
@@ -39,9 +36,33 @@ def lipschitz(lambdas, lip, model, diff):
     spart= F.pad(torch.block_diag(subdiag_items[0],subdiag_items[1]), (0,1, superp.DIM_S, 0))
         
     return dpart-spart-torch.transpose(spart,0,1)
+
+def lipschitz_diff(lambdas, lip, model):
+    device = model.device.type
+    weights=[];
+    layer=0;
+    for p in model.parameters():
+        if layer % 2 == 0:
+            weights.append(p.data)
+        layer = layer+1
+    
+    weights[0] = weights[0][0, :, :]
+    weights[1] = weights[1][0, :, :]
+    print(weights[0].shape, weights[1].shape)
+    weights[1] = torch.matmul(torch.t(weights[0]), torch.diag(torch.flatten(weights[1])))
+
+    T= torch.diag(lambdas)
+    
+    diag_items= [lip**2*torch.eye(superp.DIM_S).to(device),  2*T,  torch.eye(2).to(device)]
+    subdiag_items= [torch.matmul(T, weights[0]), weights[-1]]
+    
+    dpart = torch.block_diag(diag_items[0],diag_items[1],diag_items[2])    
+    spart= F.pad(torch.block_diag(subdiag_items[0],subdiag_items[1]), (0,2, superp.DIM_S, 0))
+        
+    return dpart-spart-torch.transpose(spart,0,1)
     
     
-def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_b):
+def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_h):
     # compute loss of init    
     h_safe, d_h_safe, d2_h_safe = barr_nn(x_safe, hessian=True)
 
@@ -65,7 +86,7 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_b
 
     f_x = prob.func_f(x_domain)
     g_x = prob.func_g(x_domain)
-    sigma = 0*torch.ones([2])
+    sigma = 0.1*torch.ones([2])
     gamma = 1
 
     u, l = safe.calc_safe_u(x_domain, h_domain, d_h_domain, d2_h_domain,f_x, g_x,sigma, gamma)
@@ -81,18 +102,21 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_b
     # return total_loss is a tensor, max_gradient is a scalar
     return total_loss
 
-def calc_lmi_loss(barr_nn,lambdas, lip_b):
-    lip = torch.tensor(lip_b)
+def calc_lmi_loss(barr_nn,lambda_h, lambda_dh, lip_h, lip_dh):
+    lip_h = torch.tensor(lip_h)
+    lip_dh = torch.tensor(lip_dh)
     device = barr_nn.device.type
     # device = 'cuda'
     if barr_nn.device != 'cpu':
-        lambdas = lambdas.cuda(device)
-        lip = lip.cuda(device)
-    lmi_loss = -0.001*(torch.logdet(lipschitz(lambdas, lip, barr_nn, 0)) )
+        lambda_h = lambda_h.cuda(device)
+        lip_h = lip_h.cuda(device)
+        lambda_dh = lambda_dh.cuda(device)
+        lip_dh = lip_dh.cuda(device)
+    lmi_loss = -0.001*(torch.logdet(lipschitz(lambda_h, lip_h, barr_nn)) + torch.logdet(lipschitz_diff(lambda_dh, lip_dh, barr_nn)) )
 
     return lmi_loss
 
-def calc_eta_loss(eta, lip_b):
+def calc_eta_loss(eta, lip_h, lip_dh):
     
-    loss_eta=torch.relu(torch.tensor(lip_b*(prob.L_x)*data.eps+lip_b*data.eps) + eta)
+    loss_eta=torch.relu(torch.tensor(lip_h*(prob.L_x)*data.eps+lip_h*data.eps) + eta)
     return loss_eta

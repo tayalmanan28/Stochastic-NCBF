@@ -33,3 +33,7 @@ epoch,epoch_loss,lmi_loss,eta_loss
 31,2.138047949691232,"tensor(-80.7342477, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
 32,2.134336805927331,"tensor(-80.7342354, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
 33,2.133672181229765,"tensor(-80.7342084, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
+34,2.126337543817619,"tensor(-80.7341986, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
+35,2.1274775703586566,"tensor(-80.7341824, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
+36,2.126187975805236,"tensor(-80.7341542, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
+37,2.1188522682935624,"tensor(-80.7341445, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
