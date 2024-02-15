@@ -72,6 +72,6 @@ GAMMA = 0 # when beta is nonzero, larger gamma gives faster drop of rate
 
 #weights for loss function
 
-DECAY_LIE = 0.1 # decay of lie weight 0.1 works, 1 does not work
-DECAY_SAFE = 2
+DECAY_LIE = 1 # decay of lie weight 0.1 works, 1 does not work
+DECAY_SAFE = 1
 DECAY_UNSAFE = 1

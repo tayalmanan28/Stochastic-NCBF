@@ -71,7 +71,7 @@ def initialize_nn(num_batches, lambda_h, lambda_dh):
     # Activation must be in ['ReLu', 'SoftPlus']
     hyper = {'n_width': superp.D_H_B,
              'n_depth': superp.N_H_B,
-             'learning_rate': 1.0e-03,
+             'learning_rate': 5.0e-04,
              'weight_decay': 1.e-6,
              'activation': "SoftPlus"}
 
@@ -103,7 +103,7 @@ def initialize_nn(num_batches, lambda_h, lambda_dh):
 
 def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
     logger = DataLog()
-    log_dir = "experiments/" + system+"_2_1_0.1_st"
+    log_dir = "experiments/" + system+"_1_1_1_st"
     working_dir = os.getcwd()
 
     if os.path.isdir(log_dir) == False:
@@ -136,6 +136,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
         for epoch in range(superp.EPOCHS): # train for a number of epochs
             # initialize epoch
             epoch_loss = 0 # scalar
+            lie_loss = 0
             lmi_loss = 0 #scalar
             eta_loss = 0
             epoch_gradient_flag = True # gradient is within range
@@ -158,7 +159,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 optimizer_barr.zero_grad() # clear gradient of parameters
                 optimizer_eta.zero_grad()
                 
-                curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h)
+                _, _, lie_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h)
                 # batch_loss is a tensor, batch_gradient is a scalar
                 curr_batch_loss.backward() # compute gradient using backward()
                 # update weight and bias
@@ -183,21 +184,24 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                     optimizer_eta.step()
                 
                 # update epoch loss
+                lie_loss += lie_batch_loss.item()
                 epoch_loss += curr_batch_loss.item()
-                lmi_loss += curr_lmi_loss
-                eta_loss += curr_eta_loss
+                lmi_loss += curr_lmi_loss.item()
+                eta_loss += curr_eta_loss.item()
 
                 if superp.VERBOSE == 1:
                     print("restart: %-2s" % num_restart, "epoch: %-3s" % epoch, "batch: %-5s" % batch_index, "batch_loss: %-25s" % curr_batch_loss.item(), \
-                          "epoch_loss: %-25s" % epoch_loss, "lmi loss: % 25s" %lmi_loss, "eta loss: % 25s" %eta_loss, "eta: % 25s" % eta)
+                          "epoch_loss: %-25s" % epoch_loss,"lie_loss: %-25s" % lie_loss, "lmi loss: % 25s" %lmi_loss, "eta loss: % 25s" %eta_loss, "eta: % 25s" % eta)
 
             logger.log_kv('epoch', epoch)
             logger.log_kv('epoch_loss', epoch_loss)
+            logger.log_kv('lie_loss', lie_loss)
             logger.log_kv('lmi_loss', lmi_loss)
             logger.log_kv('eta_loss', eta_loss)
 
             logger.save_log(log_dir+"/logs")
             make_train_plots(log = logger.log, keys=['epoch', 'epoch_loss'], save_loc=log_dir+"/logs")
+            make_train_plots(log = logger.log, keys=['epoch', 'lie_loss'], save_loc=log_dir+"/logs")
             torch.save(barr_nn,log_dir+'/iterations/barr_nn_'+str(epoch))
 
 

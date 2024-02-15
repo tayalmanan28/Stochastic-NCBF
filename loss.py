@@ -48,7 +48,7 @@ def lipschitz_diff(lambdas, lip, model):
     
     weights[0] = weights[0][0, :, :]
     weights[1] = weights[1][0, :, :]
-    print(weights[0].shape, weights[1].shape)
+    # print(weights[0].shape, weights[1].shape)
     weights[1] = torch.matmul(torch.t(weights[0]), torch.diag(torch.flatten(weights[1])))
 
     T= torch.diag(lambdas)
@@ -100,7 +100,7 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_h
                     + superp.DECAY_LIE * torch.sum(loss_lie) #+ loss_eta
                     
     # return total_loss is a tensor, max_gradient is a scalar
-    return total_loss
+    return torch.sum(loss_safe), torch.sum(loss_unsafe), torch.sum(loss_lie), total_loss
 
 def calc_lmi_loss(barr_nn,lambda_h, lambda_dh, lip_h, lip_dh):
     lip_h = torch.tensor(lip_h)

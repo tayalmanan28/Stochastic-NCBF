@@ -4,7 +4,7 @@ import sys1
 import train
 import time
 
-system = 'ip'
+system = 'di'
 
 def barr_nn(system):
     # generate training data
