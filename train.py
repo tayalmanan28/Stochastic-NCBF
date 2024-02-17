@@ -58,11 +58,11 @@ def initialize_parameters(n_h_b, d_h_b):
     lambda_h=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     lambda_dh=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     print("Initialize eta")
-    eta=Variable(torch.normal(mean=torch.tensor([-0.00075]), std=torch.tensor([0.00001])), requires_grad=True)
+    eta=Variable(torch.normal(mean=torch.tensor([-0.0005]), std=torch.tensor([0.00001])), requires_grad=True)
     return lambda_h, lambda_dh, eta
 
     
-def initialize_nn(num_batches, lambda_h, lambda_dh):    
+def initialize_nn(num_batches, eta, lambda_h, lambda_dh):    
     print("Initialize nn parameters!")
     cuda_flag = True
     filename = f"barr_nn"
@@ -71,7 +71,7 @@ def initialize_nn(num_batches, lambda_h, lambda_dh):
     # Activation must be in ['ReLu', 'SoftPlus']
     hyper = {'n_width': superp.D_H_B,
              'n_depth': superp.N_H_B,
-             'learning_rate': 5.0e-04,
+             'learning_rate': 1.0e-03,
              'weight_decay': 1.e-6,
              'activation': "SoftPlus"}
 
@@ -80,11 +80,13 @@ def initialize_nn(num_batches, lambda_h, lambda_dh):
         # load_file = f"./models/{filename}.torch"
         # state = torch.load(load_file, map_location='cpu')
 
-        barr_nn = torch.load('experiments/di_2_1_0.1/iterations/barr_nn_200') #DifferentialNetwork(n_dof, **state['hyper'])
+        barr_nn = torch.load('experiments/ip_1_1_1_imp/iterations/barr_nn_490') #DifferentialNetwork(n_dof, **state['hyper'])
         # barr_nn.load_state_dict(state['state_dict'])
 
     else:
         barr_nn = DifferentialNetwork(n_dof, **hyper)
+        for p in barr_nn.parameters():
+            nn.init.normal_(p,0,0.1)
 
     if cuda_flag:
         barr_nn.cuda()
@@ -103,7 +105,7 @@ def initialize_nn(num_batches, lambda_h, lambda_dh):
 
 def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
     logger = DataLog()
-    log_dir = "experiments/" + system+"_1_1_1_st"
+    log_dir = "experiments/" + system+"_15"
     working_dir = os.getcwd()
 
     if os.path.isdir(log_dir) == False:
@@ -125,7 +127,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
         
         # initialize nn models and optimizers and schedulers
         lambda_h, lambda_dh, eta = initialize_parameters(superp.N_H_B, superp.D_H_B)
-        barr_nn, optimizer_barr, _ = initialize_nn(NUM_BATCHES[3], lambda_h, lambda_dh)
+        barr_nn, optimizer_barr, scheduler_barr = initialize_nn(NUM_BATCHES[3], eta, lambda_h, lambda_dh)
         optimizer_eta= torch.optim.SGD([{'params':[eta]}], lr=0.001, momentum=0)
 
 
@@ -172,7 +174,6 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 if curr_lmi_loss >= -5000:
                     curr_lmi_loss.backward()
                     optimizer_barr.step()
-                    
                     optimizer_barr.zero_grad()
                 
                 optimizer_eta.zero_grad()
@@ -183,6 +184,9 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                     curr_eta_loss.backward()
                     optimizer_eta.step()
                 
+                # learning rate scheduling for each mini batch
+                scheduler_barr.step() # re-schedule learning rate once
+
                 # update epoch loss
                 lie_loss += lie_batch_loss.item()
                 epoch_loss += curr_batch_loss.item()

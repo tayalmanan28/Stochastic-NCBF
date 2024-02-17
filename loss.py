@@ -71,11 +71,11 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_h
     if h_safe.device != 'cpu':
         eta = eta.cuda(device)
         
-    loss_safe = torch.relu(-h_safe - superp.gamma + superp.TOL_SAFE + eta) #tolerance
+    loss_safe = torch.relu(-h_safe - superp.gamma + superp.TOL_SAFE -eta) #tolerance
 
     # compute loss of unsafe
     h_unsafe, d_h_unsafe, d2_h_unsafe = barr_nn(x_unsafe, hessian=True)
-    loss_unsafe = torch.relu(h_unsafe - superp.lamda - superp.TOL_UNSAFE - eta) #tolerance
+    loss_unsafe = torch.relu(h_unsafe - superp.lamda - superp.TOL_UNSAFE -eta) #tolerance
     
     # compute loss of domain
     h_domain, d_h_domain, d2_h_domain = barr_nn(x_domain, hessian=True)
@@ -86,15 +86,17 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_h
 
     f_x = prob.func_f(x_domain)
     g_x = prob.func_g(x_domain)
-    sigma = 0.1*torch.ones([2])
+    sigma = 0.0*torch.ones([2])
     gamma = 1
+
+    # print(d_h_domain)
 
     u, l = safe.calc_safe_u(x_domain, h_domain, d_h_domain, d2_h_domain,f_x, g_x,sigma, gamma)
         
     # vector_domain = prob.func_f(x_domain) # compute vector field at domain
     # print('Shape of del h & dynamics', h_domain.shape, d_h_domain.shape, d2_h_domain.shape)
     
-    loss_lie=torch.relu(-l.to(device) + superp.TOL_LIE + eta)
+    loss_lie=torch.relu(-l.to(device) + superp.TOL_LIE -eta)
         
     total_loss = superp.DECAY_SAFE * torch.sum(loss_safe) + superp.DECAY_UNSAFE * torch.sum(loss_unsafe) \
                     + superp.DECAY_LIE * torch.sum(loss_lie) #+ loss_eta

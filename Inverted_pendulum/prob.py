@@ -9,8 +9,8 @@ import math
 # set the super-rectangle range
 ############################################
 # set the initial in super-rectangle
-INIT = [[-1 / 15 * math.pi, 1 / 15 * math.pi], \
-            [- 1 / 15 * math.pi, 1 / 15 * math.pi]
+INIT = [[- math.pi/15, math.pi/15], \
+            [- math.pi/15, math.pi/15]
         ]
 INIT_SHAPE = 1 # 2 for circle, 1 for rectangle
 
@@ -97,6 +97,4 @@ def func_g(x):
     vf = torch.stack([g(i + 1) for i in range(superp.DIM_S)], dim=1)
     return vf
 
-L_x=1.1
-L_u=0.01
-#L_f=L_x+L_u*L_c
+L_x=1
