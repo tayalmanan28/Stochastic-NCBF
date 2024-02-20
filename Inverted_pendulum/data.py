@@ -23,6 +23,7 @@ ep=[];
 for d in range(0, superp.DIM_S):
     l.append(X[d][1]-X[d][0])
     ep.append(l[d]/(2*N[d]))
+    # print('ep', ep)
     
 eps=la.norm(ep,2)
 

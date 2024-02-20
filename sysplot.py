@@ -16,9 +16,9 @@ import random
 
 mpl.rcParams.update(mpl.rcParamsDefault)
 
-filename = 'experiments/ip_20'
+filename = 'experiments/iptest_dh'
 
-barr_nn=torch.load(filename+'/iterations/barr_nn_103')
+barr_nn=torch.load(filename+'/iterations/barr_nn_0')
 
 # s=20
 t=500
@@ -38,17 +38,17 @@ for i in range(t):
 # x[:, 0] = torch.linspace(-5, 5, t)
 # x[:, 1] = torch.linspace(-5, 5, t)
 
-h, _ = barr_nn(x, hessian=False)
+h, dh = barr_nn(x, hessian=False)
 h = h[:, 0, :]
-print(h)
+print(h, dh)
 # print(x.shape, h.shape)
 for i in range(t):
-    if h[i]> 0.0005:
-        plt.scatter(x[i,0], x[i,1], c='yellow', s=1)
-    elif h[i]< -0.000:
-        plt.scatter(x[i,0], x[i,1], c='black', s=1)
-    else:
+    if h[i]> 0.000325:
+        plt.scatter(x[i,0], x[i,1], c='cyan', s=1)
+    elif h[i]< -0.000325:
         plt.scatter(x[i,0], x[i,1], c='red', s=1)
+    else:
+        plt.scatter(x[i,0], x[i,1], c='black', s=1)
 
 
 # currentAxis = plt.gca()

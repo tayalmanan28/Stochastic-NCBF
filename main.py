@@ -10,6 +10,7 @@ def barr_nn(system):
     # generate training data
     # sys.sys_data(sys)
     data, prob = sys1.system_data(system)
+    # print('eps',data.eps )
     time_start_data = time.time()
     batches_safe, batches_unsafe, batches_domain = data.gen_batch_data()
     time_end_data = time.time()

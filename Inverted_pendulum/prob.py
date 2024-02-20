@@ -60,11 +60,13 @@ def cons_unsafe4(x):
     return  uns4
  
 def cons_domain(x):
-    dom1= (x[:,0] >= -math.pi/6) & (x[:,0] <= -math.pi/15) & (x[:,1] >= -math.pi/6) & (x[:,1] <= math.pi/6)
-    dom2= (x[:,0] >= math.pi/15) & (x[:,0] <= math.pi/4) & (x[:,1] >= -math.pi/6) & (x[:,1] <= math.pi/6)
-    dom3= (x[:,0] >= -math.pi/6) & (x[:,0] <= math.pi/4) & (x[:,1] >= -math.pi/6) & (x[:,1] <= -math.pi/15)
-    dom4= (x[:,0] >= -math.pi/6) & (x[:,0] <= math.pi/4) & (x[:,1] >= math.pi/15) & (x[:,1] <= math.pi/6)
-    return dom1 | dom2 | dom3 | dom4
+    # dom1= (x[:,0] >= -math.pi/6) & (x[:,0] <= -math.pi/15) & (x[:,1] >= -math.pi/6) & (x[:,1] <= math.pi/6)
+    # dom2= (x[:,0] >= math.pi/15) & (x[:,0] <= math.pi/4) & (x[:,1] >= -math.pi/6) & (x[:,1] <= math.pi/6)
+    # dom3= (x[:,0] >= -math.pi/6) & (x[:,0] <= math.pi/4) & (x[:,1] >= -math.pi/6) & (x[:,1] <= -math.pi/15)
+    # dom4= (x[:,0] >= -math.pi/6) & (x[:,0] <= math.pi/4) & (x[:,1] >= math.pi/15) & (x[:,1] <= math.pi/6)
+    # return dom1 | dom2 | dom3 | dom4
+    dom = (x[:,0] >= DOMAIN[0][0]) & (x[:,0 ] <= DOMAIN[0][1]) & (x[:,1] >= DOMAIN[1][0]) & (x[:,1] <= DOMAIN[1][1])
+    return dom
 
 def cons(x):
     return x[:, 0] == x[:, 0]

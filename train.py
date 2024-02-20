@@ -58,7 +58,7 @@ def initialize_parameters(n_h_b, d_h_b):
     lambda_h=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     lambda_dh=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     print("Initialize eta")
-    eta=Variable(torch.normal(mean=torch.tensor([-0.0005]), std=torch.tensor([0.00001])), requires_grad=True)
+    eta=Variable(torch.normal(mean=torch.tensor([-0.00035]), std=torch.tensor([0.00001])), requires_grad=True)
     return lambda_h, lambda_dh, eta
 
     
@@ -80,7 +80,7 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
         # load_file = f"./models/{filename}.torch"
         # state = torch.load(load_file, map_location='cpu')
 
-        barr_nn = torch.load('experiments/ip_1_1_1_imp/iterations/barr_nn_490') #DifferentialNetwork(n_dof, **state['hyper'])
+        barr_nn = torch.load('experiments/ip_u_0/iterations/barr_nn_345') #DifferentialNetwork(n_dof, **state['hyper'])
         # barr_nn.load_state_dict(state['state_dict'])
 
     else:
@@ -105,7 +105,7 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
 
 def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
     logger = DataLog()
-    log_dir = "experiments/" + system+"_15"
+    log_dir = "experiments/" + system+"test_dh"
     working_dir = os.getcwd()
 
     if os.path.isdir(log_dir) == False:
@@ -145,7 +145,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
             superp.CURR_MAX_GRAD = 0
 
             # mini-batches shuffle by shuffling batch indices
-            np.random.shuffle(safe_list) 
+            np.random.shuffle(safe_list)
             np.random.shuffle(unsafe_list)
             np.random.shuffle(domain_list)
             print(NUM_BATCHES[3])

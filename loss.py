@@ -71,11 +71,11 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_h
     if h_safe.device != 'cpu':
         eta = eta.cuda(device)
         
-    loss_safe = torch.relu(-h_safe - superp.gamma + superp.TOL_SAFE -eta) #tolerance
+    loss_safe = torch.relu(-h_safe + superp.TOL_SAFE -eta) #tolerance
 
     # compute loss of unsafe
     h_unsafe, d_h_unsafe, d2_h_unsafe = barr_nn(x_unsafe, hessian=True)
-    loss_unsafe = torch.relu(h_unsafe - superp.lamda - superp.TOL_UNSAFE -eta) #tolerance
+    loss_unsafe = torch.relu(h_unsafe + superp.lamda - superp.TOL_UNSAFE -eta) #tolerance
     
     # compute loss of domain
     h_domain, d_h_domain, d2_h_domain = barr_nn(x_domain, hessian=True)
@@ -98,7 +98,7 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_h
     
     loss_lie=torch.relu(-l.to(device) + superp.TOL_LIE -eta)
         
-    total_loss = superp.DECAY_SAFE * torch.sum(loss_safe) + superp.DECAY_UNSAFE * torch.sum(loss_unsafe) \
+    total_loss =  superp.DECAY_SAFE * torch.sum(loss_safe) +  superp.DECAY_UNSAFE * torch.sum(loss_unsafe) \
                     + superp.DECAY_LIE * torch.sum(loss_lie) #+ loss_eta
                     
     # return total_loss is a tensor, max_gradient is a scalar
@@ -120,5 +120,5 @@ def calc_lmi_loss(barr_nn,lambda_h, lambda_dh, lip_h, lip_dh):
 
 def calc_eta_loss(eta, lip_h, lip_dh):
     
-    loss_eta=torch.relu(torch.tensor(lip_h*(prob.L_x)*data.eps+lip_h*data.eps) + eta)
+    loss_eta=torch.relu(torch.tensor(lip_h*(prob.L_x)*data.eps) + eta)
     return loss_eta
