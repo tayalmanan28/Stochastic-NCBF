@@ -5,7 +5,7 @@ import torch
 ############################################
 
 def calc_safe_u(x_domain, h_domain, d_h_domain, d2_h_domain, f_x, g_x,sigma,gamma):
-    u_ref = (-0.1)*x_domain[:,0] + (-0.1)*x_domain[:,1] 
+    u_ref = (-0)*x_domain[:,0] + (-0)*x_domain[:,1] 
     u_ref = u_ref.reshape((-1, 1, 1)).to(d_h_domain.device.type)
     u_safe = 0*u_ref
     l = 0*u_ref

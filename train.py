@@ -15,7 +15,7 @@ from deep_differential_network.utils import jacobian, hessian, jacobian_auto
 from utils.logger import DataLog
 from utils.make_train_plots import make_train_plots
 
-LOAD_MODEL = False
+LOAD_MODEL = True
 RENDER = True
 SAVE_MODEL = True
 SAVE_PLOT = False
@@ -58,7 +58,7 @@ def initialize_parameters(n_h_b, d_h_b):
     lambda_h=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     lambda_dh=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     print("Initialize eta")
-    eta=Variable(torch.normal(mean=torch.tensor([-0.00035]), std=torch.tensor([0.00001])), requires_grad=True)
+    eta=Variable(torch.normal(mean=torch.tensor([-0.00008]), std=torch.tensor([0.00001])), requires_grad=True)
     return lambda_h, lambda_dh, eta
 
     
@@ -80,7 +80,7 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
         # load_file = f"./models/{filename}.torch"
         # state = torch.load(load_file, map_location='cpu')
 
-        barr_nn = torch.load('experiments/ip_u_0/iterations/barr_nn_345') #DifferentialNetwork(n_dof, **state['hyper'])
+        barr_nn = torch.load('experiments/ip_l12_0/iterations/barr_nn_12') #DifferentialNetwork(n_dof, **state['hyper'])
         # barr_nn.load_state_dict(state['state_dict'])
 
     else:
@@ -105,7 +105,7 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
 
 def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
     logger = DataLog()
-    log_dir = "experiments/" + system+"test_dh"
+    log_dir = "experiments/" + system+"_wo_eta"
     working_dir = os.getcwd()
 
     if os.path.isdir(log_dir) == False:
@@ -139,6 +139,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
             # initialize epoch
             epoch_loss = 0 # scalar
             lie_loss = 0
+            lie_eta_loss = 0
             lmi_loss = 0 #scalar
             eta_loss = 0
             epoch_gradient_flag = True # gradient is within range
@@ -161,7 +162,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 optimizer_barr.zero_grad() # clear gradient of parameters
                 optimizer_eta.zero_grad()
                 
-                _, _, lie_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h)
+                _, _, lie_batch_loss, lie_eta_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h)
                 # batch_loss is a tensor, batch_gradient is a scalar
                 curr_batch_loss.backward() # compute gradient using backward()
                 # update weight and bias
@@ -189,13 +190,14 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
 
                 # update epoch loss
                 lie_loss += lie_batch_loss.item()
+                lie_eta_loss += lie_eta_batch_loss.item()
                 epoch_loss += curr_batch_loss.item()
                 lmi_loss += curr_lmi_loss.item()
                 eta_loss += curr_eta_loss.item()
 
                 if superp.VERBOSE == 1:
                     print("restart: %-2s" % num_restart, "epoch: %-3s" % epoch, "batch: %-5s" % batch_index, "batch_loss: %-25s" % curr_batch_loss.item(), \
-                          "epoch_loss: %-25s" % epoch_loss,"lie_loss: %-25s" % lie_loss, "lmi loss: % 25s" %lmi_loss, "eta loss: % 25s" %eta_loss, "eta: % 25s" % eta)
+                          "epoch_loss: %-25s" % epoch_loss,"lie_loss: %-25s" % lie_loss, "lmi loss: % 25s" %lmi_loss, "eta loss: % 25s" %eta_loss, "eta: % 25s" % eta,"lie_eta_loss: %-25s" % lie_eta_loss)
 
             logger.log_kv('epoch', epoch)
             logger.log_kv('epoch_loss', epoch_loss)
@@ -221,3 +223,4 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 return True # epoch success: end of epoch training
 
     return False
+

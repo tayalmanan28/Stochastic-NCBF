@@ -96,13 +96,14 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_h
     # vector_domain = prob.func_f(x_domain) # compute vector field at domain
     # print('Shape of del h & dynamics', h_domain.shape, d_h_domain.shape, d2_h_domain.shape)
     
-    loss_lie=torch.relu(-l.to(device) + superp.TOL_LIE -eta)
+    loss_lie=torch.relu(-l.to(device) + superp.TOL_LIE) # -eta)
+    loss_lie_eta=torch.relu(-l.to(device))
         
     total_loss =  superp.DECAY_SAFE * torch.sum(loss_safe) +  superp.DECAY_UNSAFE * torch.sum(loss_unsafe) \
                     + superp.DECAY_LIE * torch.sum(loss_lie) #+ loss_eta
                     
     # return total_loss is a tensor, max_gradient is a scalar
-    return torch.sum(loss_safe), torch.sum(loss_unsafe), torch.sum(loss_lie), total_loss
+    return torch.sum(loss_safe), torch.sum(loss_unsafe), torch.sum(loss_lie), torch.sum(loss_lie_eta), total_loss
 
 def calc_lmi_loss(barr_nn,lambda_h, lambda_dh, lip_h, lip_dh):
     lip_h = torch.tensor(lip_h)
@@ -120,5 +121,5 @@ def calc_lmi_loss(barr_nn,lambda_h, lambda_dh, lip_h, lip_dh):
 
 def calc_eta_loss(eta, lip_h, lip_dh):
     
-    loss_eta=torch.relu(torch.tensor(lip_h*(prob.L_x)*data.eps) + eta)
+    loss_eta=torch.relu(torch.tensor((lip_h+lip_dh*prob.L_x)*data.eps) + eta)
     return loss_eta

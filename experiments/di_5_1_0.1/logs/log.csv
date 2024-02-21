@@ -1,8 +1,0 @@
-epoch,epoch_loss,lmi_loss,eta_loss
-0,12223003.395301271,"tensor(-81.3433908, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.0019723], grad_fn=<AddBackward0>)"
-1,4946648.89088425,"tensor(-81.2435891, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
-2,1231790.3552668595,"tensor(-81.3513373, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
-3,33567.69134778307,"tensor(-81.4166375, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
-4,6268.926895114523,"tensor(-81.4247374, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
-5,2530.0420301107742,"tensor(-81.4288237, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
-6,1244.205906300827,"tensor(-81.4315776, device='cuda:0', grad_fn=<AddBackward0>)","tensor([0.], grad_fn=<AddBackward0>)"
