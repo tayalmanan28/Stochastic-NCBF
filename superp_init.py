@@ -57,6 +57,7 @@ TOL_DATA_GEN = 1e-16 #for data generation
 #Lipschitz bound for training
 lip_h= 0.01
 lip_dh= 0.4
+lip_d2h= 2
 ############################################
 # number of training epochs
 ############################################

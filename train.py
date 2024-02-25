@@ -57,9 +57,10 @@ def initialize_parameters(n_h_b, d_h_b):
     #initialize the eta variable for scenario verification
     lambda_h=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     lambda_dh=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
+    lambda_d2h=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     print("Initialize eta")
     eta=Variable(torch.normal(mean=torch.tensor([-0.00008]), std=torch.tensor([0.00001])), requires_grad=True)
-    return lambda_h, lambda_dh, eta
+    return lambda_h, lambda_dh, lambda_d2h, eta
 
     
 def initialize_nn(num_batches, eta, lambda_h, lambda_dh):    
@@ -126,7 +127,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
         num_restart += 1
         
         # initialize nn models and optimizers and schedulers
-        lambda_h, lambda_dh, eta = initialize_parameters(superp.N_H_B, superp.D_H_B)
+        lambda_h, lambda_dh, lambda_d2h, eta = initialize_parameters(superp.N_H_B, superp.D_H_B)
         barr_nn, optimizer_barr, scheduler_barr = initialize_nn(NUM_BATCHES[3], eta, lambda_h, lambda_dh)
         optimizer_eta= torch.optim.SGD([{'params':[eta]}], lr=0.001, momentum=0)
 
@@ -161,8 +162,10 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 ############################## mini-batch training ################################################
                 optimizer_barr.zero_grad() # clear gradient of parameters
                 optimizer_eta.zero_grad()
+
+                sigma = 0.10*torch.ones([2,1])
                 
-                _, _, lie_batch_loss, lie_eta_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h)
+                _, _, lie_batch_loss, lie_eta_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h, sigma)
                 # batch_loss is a tensor, batch_gradient is a scalar
                 curr_batch_loss.backward() # compute gradient using backward()
                 # update weight and bias
@@ -170,7 +173,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                    
                 optimizer_barr.zero_grad()
 
-                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambda_h, lambda_dh, superp.lip_h, superp.lip_dh)
+                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambda_h, lambda_dh, lambda_d2h, superp.lip_h, superp.lip_d2h, superp.lip_dh, sigma)
                                 
                 if curr_lmi_loss >= -5000:
                     curr_lmi_loss.backward()
