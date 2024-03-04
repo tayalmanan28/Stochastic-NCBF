@@ -173,7 +173,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                    
                 optimizer_barr.zero_grad()
 
-                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambda_h, lambda_dh, lambda_d2h, superp.lip_h, superp.lip_d2h, superp.lip_dh, sigma)
+                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambda_h, lambda_dh, lambda_d2h, superp.lip_h, superp.lip_dh, superp.lip_d2h, sigma)
                                 
                 if curr_lmi_loss >= -5000:
                     curr_lmi_loss.backward()
@@ -182,7 +182,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 
                 optimizer_eta.zero_grad()
                 
-                curr_eta_loss=  loss.calc_eta_loss(eta, superp.lip_h, superp.lip_dh)
+                curr_eta_loss=  loss.calc_eta_loss(eta, superp.lip_h, superp.lip_dh, superp.lip_d2h)
                 
                 if curr_eta_loss > 0:
                     curr_eta_loss.backward()
