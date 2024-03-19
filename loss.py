@@ -31,17 +31,17 @@ def lipschitz(lambdas, lip, model):
 
     T= torch.diag(lambdas)
     
-    diag_items= [lip**2*torch.eye(superp.DIM_S).to(device) + 2*alpha*beta*torch.matmul(torch.t(weights[0]),torch.matmul(T, weights[0])),  2*T,  torch.eye(1).to(device)]
+    diag_items= [lip**2*torch.eye(data.DIM_S).to(device) + 2*alpha*beta*torch.matmul(torch.t(weights[0]),torch.matmul(T, weights[0])),  2*T,  torch.eye(1).to(device)]
     subdiag_items= [(alpha+beta)*torch.matmul(T, weights[0]), weights[-1]]
     
     dpart = torch.block_diag(diag_items[0],diag_items[1],diag_items[2])    
-    spart= F.pad(torch.block_diag(subdiag_items[0],subdiag_items[1]), (0,1, superp.DIM_S, 0))
+    spart= F.pad(torch.block_diag(subdiag_items[0],subdiag_items[1]), (0,1, data.DIM_S, 0))
         
     return dpart-spart-torch.transpose(spart,0,1)
 
 def lipschitz_diff(lambdas, lip, model):
-    alpha = -0.0962
-    beta = 0.0962
+    alpha = 0
+    beta = 0.25
     device = model.device.type
     weights=[];
     layer=0;
@@ -57,17 +57,19 @@ def lipschitz_diff(lambdas, lip, model):
 
     T= torch.diag(lambdas)
     
-    diag_items= [lip**2*torch.eye(superp.DIM_S).to(device) + 2*alpha*beta*torch.matmul(torch.t(weights[0]),torch.matmul(T, weights[0])),  2*T,  torch.eye(2).to(device)]
+    diag_items= [lip**2*torch.eye(data.DIM_S).to(device) + 2*alpha*beta*torch.matmul(torch.t(weights[0]),torch.matmul(T, weights[0])),  2*T,  torch.eye(data.DIM_S).to(device)]
     subdiag_items= [(alpha+beta)*torch.matmul(T, weights[0]), weights[-1]]
     
     dpart = torch.block_diag(diag_items[0],diag_items[1],diag_items[2])    
-    spart= F.pad(torch.block_diag(subdiag_items[0],subdiag_items[1]), (0,2, superp.DIM_S, 0))
+    spart= F.pad(torch.block_diag(subdiag_items[0],subdiag_items[1]), (0,data.DIM_S, data.DIM_S, 0))
         
     return dpart-spart-torch.transpose(spart,0,1)
 
 def lipschitz_d_diff(lambdas, lip, model, sigma):
-    alpha = -0.125
-    beta = 0.042
+    alpha = -0.0962
+    beta = 0.0962
+    # alpha = -0.125
+    # beta = 0.042
     device = model.device.type
     weights=[];
     layer=0;
@@ -84,11 +86,11 @@ def lipschitz_d_diff(lambdas, lip, model, sigma):
 
     T= torch.diag(lambdas)
     
-    diag_items= [lip**2*torch.eye(superp.DIM_S).to(device) + 2*alpha*beta*torch.matmul(torch.t(weights[0]),torch.matmul(T, weights[0])),  2*T,  torch.eye(1).to(device)]
+    diag_items= [lip**2*torch.eye(data.DIM_S).to(device) + 2*alpha*beta*torch.matmul(torch.t(weights[0]),torch.matmul(T, weights[0])),  2*T,  torch.eye(1).to(device)]
     subdiag_items= [(alpha+beta)*torch.matmul(T, weights[0]), weights[-1]]
     
     dpart = torch.block_diag(diag_items[0],diag_items[1],diag_items[2])    
-    spart= F.pad(torch.block_diag(subdiag_items[0],subdiag_items[1]), (0,1, superp.DIM_S, 0))
+    spart= F.pad(torch.block_diag(subdiag_items[0],subdiag_items[1]), (0,1, data.DIM_S, 0))
         
     return dpart-spart-torch.transpose(spart,0,1)
     
@@ -158,3 +160,4 @@ def calc_eta_loss(eta, lip_h, lip_dh, lip_d2h):
     
     loss_eta=torch.relu(torch.tensor((lip_h+lip_dh*prob.L_x + lip_d2h)*data.eps) + eta)
     return loss_eta
+

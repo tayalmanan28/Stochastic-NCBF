@@ -15,7 +15,13 @@ from deep_differential_network.utils import jacobian, hessian, jacobian_auto
 from utils.logger import DataLog
 from utils.make_train_plots import make_train_plots
 
-LOAD_MODEL = True
+import sys1
+import main
+
+data, prob = sys1.system_data(main.system)
+
+
+LOAD_MODEL = False
 RENDER = True
 SAVE_MODEL = True
 SAVE_PLOT = False
@@ -59,7 +65,7 @@ def initialize_parameters(n_h_b, d_h_b):
     lambda_dh=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     lambda_d2h=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     print("Initialize eta")
-    eta=Variable(torch.normal(mean=torch.tensor([-0.00008]), std=torch.tensor([0.00001])), requires_grad=True)
+    eta=Variable(torch.normal(mean=torch.tensor([-0.003]), std=torch.tensor([0.00001])), requires_grad=True)
     return lambda_h, lambda_dh, lambda_d2h, eta
 
     
@@ -67,7 +73,7 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
     print("Initialize nn parameters!")
     cuda_flag = True
     filename = f"barr_nn"
-    n_dof = 2
+    n_dof = data.DIM_S
     # Construct Hyperparameters:
     # Activation must be in ['ReLu', 'SoftPlus']
     hyper = {'n_width': superp.D_H_B,
@@ -81,7 +87,7 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
         # load_file = f"./models/{filename}.torch"
         # state = torch.load(load_file, map_location='cpu')
 
-        barr_nn = torch.load('experiments/ip_l12_0/iterations/barr_nn_12') #DifferentialNetwork(n_dof, **state['hyper'])
+        barr_nn = torch.load('experiments/di_l12_0/iterations/barr_nn_1') #DifferentialNetwork(n_dof, **state['hyper'])
         # barr_nn.load_state_dict(state['state_dict'])
 
     else:
@@ -106,7 +112,7 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
 
 def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
     logger = DataLog()
-    log_dir = "experiments/" + system+"_wo_eta"
+    log_dir = "experiments/" + system+"_w_eta"
     working_dir = os.getcwd()
 
     if os.path.isdir(log_dir) == False:
@@ -123,7 +129,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
     num_restart = -1
 
     ############################## the main training loop ##################################################################
-    while num_restart < 4:
+    while num_restart < 0:
         num_restart += 1
         
         # initialize nn models and optimizers and schedulers
@@ -163,7 +169,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 optimizer_barr.zero_grad() # clear gradient of parameters
                 optimizer_eta.zero_grad()
 
-                sigma = 0.10*torch.ones([2,1])
+                sigma = 0.10*torch.ones([data.DIM_S,1])
                 
                 _, _, lie_batch_loss, lie_eta_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h, sigma)
                 # batch_loss is a tensor, batch_gradient is a scalar
@@ -226,4 +232,5 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 return True # epoch success: end of epoch training
 
     return False
+
 

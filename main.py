@@ -4,7 +4,7 @@ import sys1
 import train
 import time
 
-system = 'ip'
+system = 'uni'
 
 def barr_nn(system):
     # generate training data
@@ -41,3 +41,4 @@ if __name__ =="__main__":
      
      barr_nn = barr_nn(system)
     #  torch.save(barr_nn,'saved_weights/barr_nn')
+

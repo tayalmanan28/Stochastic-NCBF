@@ -55,8 +55,8 @@ TOL_DATA_GEN = 1e-16 #for data generation
 
 ############################################
 #Lipschitz bound for training
-lip_h= 0.01
-lip_dh= 0.4
+lip_h= 1
+lip_dh= 1
 lip_d2h= 2
 ############################################
 # number of training epochs
@@ -74,3 +74,4 @@ GAMMA = 0 # when beta is nonzero, larger gamma gives faster drop of rate
 DECAY_LIE = 1 # decay of lie weight 0.1 works, 1 does not work
 DECAY_SAFE = 1
 DECAY_UNSAFE = 1
+
