@@ -18,14 +18,6 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 # torch.set_default_tensor_type(torch.FloatTensor)
 
 FINE_TUNE = 1 # set to 1 for fine-tuning a pre-trained model
-FIX_CTRL = 0
-FIX_BARR = 0
-
-
-############################################
-# set the system dimension
-############################################
-DIM_S = 2 # dimension of system
 
 ############################################
 # set the network architecture
