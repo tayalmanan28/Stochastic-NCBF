@@ -17,8 +17,6 @@ torch.set_default_tensor_type(torch.DoubleTensor)
 # torch.set_default_dtype(torch.float32)
 # torch.set_default_tensor_type(torch.FloatTensor)
 
-VERBOSE = 1 # set to 1 to display epoch and batch losses in the training process
-
 FINE_TUNE = 1 # set to 1 for fine-tuning a pre-trained model
 FIX_CTRL = 0
 FIX_BARR = 0

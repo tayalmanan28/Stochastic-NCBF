@@ -34,29 +34,6 @@ torch.set_printoptions(precision=7)
 # it relies on three assistant functions:
 #################################################
 
-
-# used to output learned model parameters
-def print_nn(model):
-    for p in model.parameters():
-        print(p.data)
-
-def print_nn_matlab(model):
-    layer = 0
-    for p in model.parameters():
-        layer = layer + 1
-        arr = p.detach().numpy()
-        if arr.ndim == 2:
-            print( "w" + str((layer + 1) // 2) + " = [", end="")
-            print('; '.join([', '.join(str(curr_int) for curr_int in curr_arr) for curr_arr in arr]), end="];\n")
-        elif arr.ndim == 1:
-            print( "b" + str(layer // 2) + " = [", end="")
-            if layer == 2:
-                print(', '.join(str(i) for i in arr), end="]';\n")
-            else:
-                print(', '.join(str(i) for i in arr), end="];\n")
-        else:
-            print("Transform error!")
-
 # used for initialization and restart
 
 def initialize_parameters(n_h_b, d_h_b):
@@ -110,7 +87,7 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
 
     return barr_nn, optimizer,scheduler
 
-def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
+def train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
     logger = DataLog()
     log_dir = "experiments/" + system+"_w_eta"
     working_dir = os.getcwd()
@@ -169,7 +146,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 optimizer_barr.zero_grad() # clear gradient of parameters
                 optimizer_eta.zero_grad()
 
-                sigma = 0.10*torch.ones([data.DIM_S,1])
+                sigma = 0.10*torch.eye([data.DIM_S])
                 
                 _, _, lie_batch_loss, lie_eta_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h, sigma)
                 # batch_loss is a tensor, batch_gradient is a scalar
@@ -204,8 +181,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 lmi_loss += curr_lmi_loss.item()
                 eta_loss += curr_eta_loss.item()
 
-                if superp.VERBOSE == 1:
-                    print("restart: %-2s" % num_restart, "epoch: %-3s" % epoch, "batch: %-5s" % batch_index, "batch_loss: %-25s" % curr_batch_loss.item(), \
+                print("restart: %-2s" % num_restart, "epoch: %-3s" % epoch, "batch: %-5s" % batch_index, "batch_loss: %-25s" % curr_batch_loss.item(), \
                           "epoch_loss: %-25s" % epoch_loss,"lie_loss: %-25s" % lie_loss, "lmi loss: % 25s" %lmi_loss, "eta loss: % 25s" %eta_loss, "eta: % 25s" % eta,"lie_eta_loss: %-25s" % lie_eta_loss)
 
             logger.log_kv('epoch', epoch)
@@ -222,13 +198,6 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
 
             if (epoch_loss <= 0) and (lmi_loss <= 0) and (eta_loss <= 0):
                 print("The last epoch:", epoch, "of restart:", num_restart)
-                if superp.VERBOSE == 1:
-                    print("\nSuccess! The nn barrier is:")
-                    print_nn_matlab(barr_nn) # output the learned model
-                    print("\nThe value of eta is:")
-                    print(eta)
-                    torch.save(barr_nn,log_dir+'/iterations/barr_nn')
-
                 return True # epoch success: end of epoch training
 
     return False
