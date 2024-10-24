@@ -15,6 +15,12 @@ from deep_differential_network.utils import jacobian, hessian, jacobian_auto
 from utils.logger import DataLog
 from utils.make_train_plots import make_train_plots
 
+import sys1
+import main
+
+data, prob = sys1.system_data(main.system)
+
+
 LOAD_MODEL = False
 RENDER = True
 SAVE_MODEL = True
@@ -28,45 +34,23 @@ torch.set_printoptions(precision=7)
 # it relies on three assistant functions:
 #################################################
 
-
-# used to output learned model parameters
-def print_nn(model):
-    for p in model.parameters():
-        print(p.data)
-
-def print_nn_matlab(model):
-    layer = 0
-    for p in model.parameters():
-        layer = layer + 1
-        arr = p.detach().numpy()
-        if arr.ndim == 2:
-            print( "w" + str((layer + 1) // 2) + " = [", end="")
-            print('; '.join([', '.join(str(curr_int) for curr_int in curr_arr) for curr_arr in arr]), end="];\n")
-        elif arr.ndim == 1:
-            print( "b" + str(layer // 2) + " = [", end="")
-            if layer == 2:
-                print(', '.join(str(i) for i in arr), end="]';\n")
-            else:
-                print(', '.join(str(i) for i in arr), end="];\n")
-        else:
-            print("Transform error!")
-
 # used for initialization and restart
 
 def initialize_parameters(n_h_b, d_h_b):
     #initialize the eta variable for scenario verification
     lambda_h=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     lambda_dh=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
+    lambda_d2h=Variable(torch.normal(mean=10*torch.ones(n_h_b*d_h_b),std=0.001*torch.ones(n_h_b*d_h_b)), requires_grad=True)
     print("Initialize eta")
-    eta=Variable(torch.normal(mean=torch.tensor([-0.00035]), std=torch.tensor([0.00001])), requires_grad=True)
-    return lambda_h, lambda_dh, eta
+    eta=Variable(torch.normal(mean=torch.tensor([-0.003]), std=torch.tensor([0.00001])), requires_grad=True)
+    return lambda_h, lambda_dh, lambda_d2h, eta
 
     
 def initialize_nn(num_batches, eta, lambda_h, lambda_dh):    
     print("Initialize nn parameters!")
     cuda_flag = True
     filename = f"barr_nn"
-    n_dof = 2
+    n_dof = data.DIM_S
     # Construct Hyperparameters:
     # Activation must be in ['ReLu', 'SoftPlus']
     hyper = {'n_width': superp.D_H_B,
@@ -80,7 +64,7 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
         # load_file = f"./models/{filename}.torch"
         # state = torch.load(load_file, map_location='cpu')
 
-        barr_nn = torch.load('experiments/ip_u_0/iterations/barr_nn_345') #DifferentialNetwork(n_dof, **state['hyper'])
+        barr_nn = torch.load('experiments/di_l12_0/iterations/barr_nn_1') #DifferentialNetwork(n_dof, **state['hyper'])
         # barr_nn.load_state_dict(state['state_dict'])
 
     else:
@@ -103,9 +87,9 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
 
     return barr_nn, optimizer,scheduler
 
-def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
+def train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
     logger = DataLog()
-    log_dir = "experiments/" + system+"test_dh"
+    log_dir = "experiments/" + system+"_w_eta"
     working_dir = os.getcwd()
 
     if os.path.isdir(log_dir) == False:
@@ -122,11 +106,11 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
     num_restart = -1
 
     ############################## the main training loop ##################################################################
-    while num_restart < 4:
+    while num_restart < 0:
         num_restart += 1
         
         # initialize nn models and optimizers and schedulers
-        lambda_h, lambda_dh, eta = initialize_parameters(superp.N_H_B, superp.D_H_B)
+        lambda_h, lambda_dh, lambda_d2h, eta = initialize_parameters(superp.N_H_B, superp.D_H_B)
         barr_nn, optimizer_barr, scheduler_barr = initialize_nn(NUM_BATCHES[3], eta, lambda_h, lambda_dh)
         optimizer_eta= torch.optim.SGD([{'params':[eta]}], lr=0.001, momentum=0)
 
@@ -139,6 +123,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
             # initialize epoch
             epoch_loss = 0 # scalar
             lie_loss = 0
+            lie_eta_loss = 0
             lmi_loss = 0 #scalar
             eta_loss = 0
             epoch_gradient_flag = True # gradient is within range
@@ -160,8 +145,10 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 ############################## mini-batch training ################################################
                 optimizer_barr.zero_grad() # clear gradient of parameters
                 optimizer_eta.zero_grad()
+
+                sigma = 0.10*torch.eye([data.DIM_S])
                 
-                _, _, lie_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h)
+                _, _, lie_batch_loss, lie_eta_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h, sigma)
                 # batch_loss is a tensor, batch_gradient is a scalar
                 curr_batch_loss.backward() # compute gradient using backward()
                 # update weight and bias
@@ -169,7 +156,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                    
                 optimizer_barr.zero_grad()
 
-                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambda_h, lambda_dh, superp.lip_h, superp.lip_dh)
+                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambda_h, lambda_dh, lambda_d2h, superp.lip_h, superp.lip_dh, superp.lip_d2h, sigma)
                                 
                 if curr_lmi_loss >= -5000:
                     curr_lmi_loss.backward()
@@ -178,7 +165,7 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 
                 optimizer_eta.zero_grad()
                 
-                curr_eta_loss=  loss.calc_eta_loss(eta, superp.lip_h, superp.lip_dh)
+                curr_eta_loss=  loss.calc_eta_loss(eta, superp.lip_h, superp.lip_dh, superp.lip_d2h)
                 
                 if curr_eta_loss > 0:
                     curr_eta_loss.backward()
@@ -189,13 +176,13 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
 
                 # update epoch loss
                 lie_loss += lie_batch_loss.item()
+                lie_eta_loss += lie_eta_batch_loss.item()
                 epoch_loss += curr_batch_loss.item()
                 lmi_loss += curr_lmi_loss.item()
                 eta_loss += curr_eta_loss.item()
 
-                if superp.VERBOSE == 1:
-                    print("restart: %-2s" % num_restart, "epoch: %-3s" % epoch, "batch: %-5s" % batch_index, "batch_loss: %-25s" % curr_batch_loss.item(), \
-                          "epoch_loss: %-25s" % epoch_loss,"lie_loss: %-25s" % lie_loss, "lmi loss: % 25s" %lmi_loss, "eta loss: % 25s" %eta_loss, "eta: % 25s" % eta)
+                print("restart: %-2s" % num_restart, "epoch: %-3s" % epoch, "batch: %-5s" % batch_index, "batch_loss: %-25s" % curr_batch_loss.item(), \
+                          "epoch_loss: %-25s" % epoch_loss,"lie_loss: %-25s" % lie_loss, "lmi loss: % 25s" %lmi_loss, "eta loss: % 25s" %eta_loss, "eta: % 25s" % eta,"lie_eta_loss: %-25s" % lie_eta_loss)
 
             logger.log_kv('epoch', epoch)
             logger.log_kv('epoch_loss', epoch_loss)
@@ -211,13 +198,8 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
 
             if (epoch_loss <= 0) and (lmi_loss <= 0) and (eta_loss <= 0):
                 print("The last epoch:", epoch, "of restart:", num_restart)
-                if superp.VERBOSE == 1:
-                    print("\nSuccess! The nn barrier is:")
-                    print_nn_matlab(barr_nn) # output the learned model
-                    print("\nThe value of eta is:")
-                    print(eta)
-                    torch.save(barr_nn,log_dir+'/iterations/barr_nn')
-
                 return True # epoch success: end of epoch training
 
     return False
+
+

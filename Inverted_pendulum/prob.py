@@ -78,7 +78,7 @@ def func_f(x):
         if i == 1:
             return x[:, 1]
         elif i == 2:
-            return (9.8 * torch.sin(x[:, 0]))
+            return (0.98 * torch.sin(x[:, 0]))
         else:
             print("Vector function error!")
             exit()
@@ -91,7 +91,7 @@ def func_g(x):
         if i == 1:
             return 0*x[:, 1]
         elif i == 2:
-            return 0*x[:, 1] + 1
+            return 0*x[:, 1] + 0.01
         else:
             print("Vector function error!")
             exit()
@@ -99,4 +99,4 @@ def func_g(x):
     vf = torch.stack([g(i + 1) for i in range(superp.DIM_S)], dim=1)
     return vf
 
-L_x=1
+L_x=0.98
