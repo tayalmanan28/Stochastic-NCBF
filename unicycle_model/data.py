@@ -7,6 +7,7 @@ from numpy import linalg as la
 
 X=prob.DOMAIN
 DIM_S = 3
+DIM_C = 1
     
 N=[300,300,600] # size should be the dimension of the system #its also the number of samples per each dimension
 

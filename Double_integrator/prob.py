@@ -1,8 +1,9 @@
 # Defining safe and unsafe sets- vector field
 
 import torch
-import superp_init as superp
+import hyper_para as hyp
 import math
+import Double_integrator.data as data
 
 
 ############################################
@@ -81,7 +82,7 @@ def func_f(x):
             print("Vector function error!")
             exit()
 
-    vf = torch.stack([f(i + 1, x) for i in range(superp.DIM_S)], dim=1)
+    vf = torch.stack([f(i + 1, x) for i in range(data.DIM_S)], dim=1)
     return vf
 
 def func_g(x):
@@ -94,7 +95,7 @@ def func_g(x):
             print("Vector function error!")
             exit()
 
-    vf = torch.stack([g(i + 1) for i in range(superp.DIM_S)], dim=1)
+    vf = torch.stack([g(i + 1) for i in range(data.DIM_S)], dim=1)
     return vf
 
 L_x=1.1

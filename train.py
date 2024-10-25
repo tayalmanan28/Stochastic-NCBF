@@ -2,15 +2,13 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 import numpy as np
-import superp_init as superp # parameters
+import hyper_para as hyp # parameters
 import loss # computing loss
 import lrate
 import os
 import time
 
 from deep_differential_network.differential_hessian_network import DifferentialNetwork
-from deep_differential_network.replay_memory import PyTorchReplayMemory
-from deep_differential_network.utils import jacobian, hessian, jacobian_auto
 
 from utils.logger import DataLog
 from utils.make_train_plots import make_train_plots
@@ -53,8 +51,8 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
     n_dof = data.DIM_S
     # Construct Hyperparameters:
     # Activation must be in ['ReLu', 'SoftPlus']
-    hyper = {'n_width': superp.D_H_B,
-             'n_depth': superp.N_H_B,
+    hyper = {'n_width': hyp.D_H_B,
+             'n_depth': hyp.N_H_B,
              'learning_rate': 1.0e-03,
              'weight_decay': 1.e-6,
              'activation': "SoftPlus"}
@@ -110,7 +108,7 @@ def train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
         num_restart += 1
         
         # initialize nn models and optimizers and schedulers
-        lambda_h, lambda_dh, lambda_d2h, eta = initialize_parameters(superp.N_H_B, superp.D_H_B)
+        lambda_h, lambda_dh, lambda_d2h, eta = initialize_parameters(hyp.N_H_B, hyp.D_H_B)
         barr_nn, optimizer_barr, scheduler_barr = initialize_nn(NUM_BATCHES[3], eta, lambda_h, lambda_dh)
         optimizer_eta= torch.optim.SGD([{'params':[eta]}], lr=0.001, momentum=0)
 
@@ -119,7 +117,7 @@ def train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
         unsafe_list = np.arange(NUM_BATCHES[3]) % NUM_BATCHES[1]                            # U
         domain_list = np.arange(NUM_BATCHES[3]) % NUM_BATCHES[2]                            # D
 
-        for epoch in range(superp.EPOCHS): # train for a number of epochs
+        for epoch in range(hyp.EPOCHS): # train for a number of epochs
             # initialize epoch
             epoch_loss = 0 # scalar
             lie_loss = 0
@@ -127,7 +125,7 @@ def train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
             lmi_loss = 0 #scalar
             eta_loss = 0
             epoch_gradient_flag = True # gradient is within range
-            superp.CURR_MAX_GRAD = 0
+            hyp.CURR_MAX_GRAD = 0
 
             # mini-batches shuffle by shuffling batch indices
             np.random.shuffle(safe_list)
@@ -146,9 +144,9 @@ def train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
                 optimizer_barr.zero_grad() # clear gradient of parameters
                 optimizer_eta.zero_grad()
 
-                sigma = 0.10*torch.eye([data.DIM_S])
+                sigma = 0.10*torch.eye(data.DIM_S)
                 
-                _, _, lie_batch_loss, lie_eta_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h, sigma)
+                _, _, lie_batch_loss, lie_eta_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, hyp.lip_h, sigma)
                 # batch_loss is a tensor, batch_gradient is a scalar
                 curr_batch_loss.backward() # compute gradient using backward()
                 # update weight and bias
@@ -156,7 +154,7 @@ def train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
                    
                 optimizer_barr.zero_grad()
 
-                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambda_h, lambda_dh, lambda_d2h, superp.lip_h, superp.lip_dh, superp.lip_d2h, sigma)
+                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambda_h, lambda_dh, lambda_d2h, hyp.lip_h, hyp.lip_dh, hyp.lip_d2h, sigma)
                                 
                 if curr_lmi_loss >= -5000:
                     curr_lmi_loss.backward()
@@ -165,7 +163,7 @@ def train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
                 
                 optimizer_eta.zero_grad()
                 
-                curr_eta_loss=  loss.calc_eta_loss(eta, superp.lip_h, superp.lip_dh, superp.lip_d2h)
+                curr_eta_loss=  loss.calc_eta_loss(eta, hyp.lip_h, hyp.lip_dh, hyp.lip_d2h)
                 
                 if curr_eta_loss > 0:
                     curr_eta_loss.backward()

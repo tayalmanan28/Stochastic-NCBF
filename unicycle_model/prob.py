@@ -1,7 +1,7 @@
 # Defining safe and unsafe sets- vector field
 
 import torch
-import superp_init as superp
+import hyper_para as hyp
 import math
 from numpy import linalg as la
 import unicycle_model.data as data

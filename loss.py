@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-import superp_init as superp
+import hyper_para as hyp
 import torch.nn.functional as F
 import safe
 import sys1
@@ -80,9 +80,17 @@ def lipschitz_d_diff(lambdas, lip, model, sigma):
     
     weights[0] = weights[0][0, :, :]
     weights[1] = weights[1][0, :, :]
-    # print(weights[0].shape, weights[1].shape)
-    weights[1] = torch.matmul(torch.t(sigma), torch.matmul(torch.t(weights[0]), torch.matmul(torch.diag(torch.flatten(weights[1])), torch.diag(torch.flatten(torch.matmul(weights[0], sigma))))))
-    # print(weights[0].shape, weights[1].shape)
+    diag_weights_1 = torch.diag(torch.flatten(weights[1]))
+
+    theta_hat = torch.matmul(torch.t(weights[0]), diag_weights_1)
+    sigma_diag_squared = torch.diag(sigma) ** 2
+    bar_theta_1 = 0*weights[1]
+
+    for j in range(2):  # Iterate over r = 2
+        # Compute the contribution for each j and accumulate
+        bar_theta_1 += sigma_diag_squared[j] * (theta_hat[j, :] * weights[0][:, j])
+    
+    weights[1] = bar_theta_1
 
     T= torch.diag(lambdas)
     
@@ -104,11 +112,11 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_h
     if h_safe.device != 'cpu':
         eta = eta.cuda(device)
         
-    loss_safe = torch.relu(-h_safe + superp.TOL_SAFE -eta) #tolerance
+    loss_safe = torch.relu(-h_safe + hyp.TOL_SAFE -eta) #tolerance
 
     # compute loss of unsafe
     h_unsafe, d_h_unsafe, d2_h_unsafe = barr_nn(x_unsafe, hessian=True)
-    loss_unsafe = torch.relu(h_unsafe + superp.lamda - superp.TOL_UNSAFE -eta) #tolerance
+    loss_unsafe = torch.relu(h_unsafe + hyp.lamda - hyp.TOL_UNSAFE -eta) #tolerance
     
     # compute loss of domain
     h_domain, d_h_domain, d2_h_domain = barr_nn(x_domain, hessian=True)
@@ -129,11 +137,11 @@ def calc_loss(barr_nn, x_safe, x_unsafe, x_domain, epoch, batch_index, eta,lip_h
     # vector_domain = prob.func_f(x_domain) # compute vector field at domain
     # print('Shape of del h & dynamics', h_domain.shape, d_h_domain.shape, d2_h_domain.shape)
     
-    loss_lie=torch.relu(-l.to(device) + superp.TOL_LIE -eta)
+    loss_lie=torch.relu(-l.to(device) + hyp.TOL_LIE -eta)
     loss_lie_eta=torch.relu(-l.to(device))
         
-    total_loss =  superp.DECAY_SAFE * torch.sum(loss_safe) +  superp.DECAY_UNSAFE * torch.sum(loss_unsafe) \
-                    + superp.DECAY_LIE * torch.sum(loss_lie) #+ loss_eta
+    total_loss =  hyp.DECAY_SAFE * torch.sum(loss_safe) +  hyp.DECAY_UNSAFE * torch.sum(loss_unsafe) \
+                    + hyp.DECAY_LIE * torch.sum(loss_lie) #+ loss_eta
                     
     # return total_loss is a tensor, max_gradient is a scalar
     return torch.sum(loss_safe), torch.sum(loss_unsafe), torch.sum(loss_lie), torch.sum(loss_lie_eta), total_loss
