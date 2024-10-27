@@ -1,5 +1,11 @@
-# Stochastic-NCBF
-The official repository for Paper "Learning a Formally Verified Control Barrier Function in Stochastic Environment" [paper](https://arxiv.org/pdf/2403.19332), accepted for presentation at CDC'24 Milan, Italy.
+# Stochastic-Neural CBF: Learning a Formally Verified Control Barrier Function in Stochastic Environment
+
+### [Paper](https://arxiv.org/pdf/2403.19332)<br>
+
+[Manan Tayal](https://tayalmanan28.github.io/), [Hongchao Zhang](https://hongchaozhang-hz.github.io/), Pushpak Jagtap, Andrew Clark, Shishir Kolathaya<br>
+IISc, Bangalore and WashU, St. Louis
+
+The official repository for Paper "Learning a Formally Verified Control Barrier Function in Stochastic Environment", accepted for presentation at CDC'24 Milan, Italy.
 
 ## Installation
 
@@ -67,3 +73,17 @@ Finally, run `main.py` to start training Stochastic Neural CBF:
 ```
 python3 main.py
 ```
+
+## Citation
+If you find our work useful in your research, please cite:
+```
+@inproceedings{tayal2024learning,
+  title={Learning a Formally Verified Control Barrier Function in Stochastic Environment},
+  author={Tayal, Manan and Zhang, Hongchao and Jagtap, Pushpak and Clark, Andrew and Kolathaya, Shishir},
+  booktitle={2024 63rd IEEE Conference on Decision and Control (CDC)},
+  year={2024}
+}
+```
+
+## Contact
+If you have any questions, please feel free to email the authors.
