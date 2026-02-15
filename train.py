@@ -16,9 +16,6 @@ from utils.logger import DataLog
 from utils.make_train_plots import make_train_plots
 
 import sys1
-import main
-
-data, prob = sys1.system_data(main.system)
 
 
 LOAD_MODEL = False
@@ -68,12 +65,11 @@ def initialize_parameters(n_h_b, d_h_b):
     eta=Variable(torch.normal(mean=torch.tensor([-0.003]), std=torch.tensor([0.00001])), requires_grad=True)
     return lambda_h, lambda_dh, lambda_d2h, eta
 
-    
-def initialize_nn(num_batches, eta, lambda_h, lambda_dh):    
+
+def initialize_nn(num_batches, eta, lambda_h, lambda_dh, dim_s):
     print("Initialize nn parameters!")
-    cuda_flag = True
-    filename = f"barr_nn"
-    n_dof = data.DIM_S
+    cuda_flag = torch.cuda.is_available()
+    n_dof = dim_s
     # Construct Hyperparameters:
     # Activation must be in ['ReLu', 'SoftPlus']
     hyper = {'n_width': superp.D_H_B,
@@ -84,12 +80,7 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
 
     # Load existing model parameters:
     if LOAD_MODEL:
-        # load_file = f"./models/{filename}.torch"
-        # state = torch.load(load_file, map_location='cpu')
-
-        barr_nn = torch.load('experiments/di_l12_0/iterations/barr_nn_1') #DifferentialNetwork(n_dof, **state['hyper'])
-        # barr_nn.load_state_dict(state['state_dict'])
-
+        barr_nn = torch.load('experiments/di_l12_0/iterations/barr_nn_1')
     else:
         barr_nn = DifferentialNetwork(n_dof, **hyper)
         for p in barr_nn.parameters():
@@ -97,32 +88,35 @@ def initialize_nn(num_batches, eta, lambda_h, lambda_dh):
 
     if cuda_flag:
         barr_nn.cuda()
-        
+
     # Generate & Initialize the Optimizer:
     t0_opt = time.perf_counter()
-    optimizer = torch.optim.Adam([{'params':barr_nn.parameters()},{'params':[lambda_h,lambda_dh]}],
+    optimizer = torch.optim.SGD([{'params':barr_nn.parameters()},{'params':[lambda_h,lambda_dh]}],
                                     lr=hyper["learning_rate"],
-                                    weight_decay=hyper["weight_decay"],
-                                    amsgrad=True)
+                                    weight_decay=hyper["weight_decay"])
 
     print("{0:30}: {1:05.2f}s".format("Initialize Optimizer", time.perf_counter() - t0_opt))
     scheduler = lrate.set_scheduler(optimizer, num_batches)
 
-    return barr_nn, optimizer,scheduler
+    return barr_nn, optimizer, scheduler
 
 def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system):
+    # Get data and prob for this system
+    data, prob = sys1.system_data(system)
+    dim_s = superp.DIM_S
+
     logger = DataLog()
-    log_dir = "experiments/" + system+"_w_eta"
+    log_dir = "experiments/" + system + "_w_eta"
     working_dir = os.getcwd()
 
-    if os.path.isdir(log_dir) == False:
-        os.mkdir(log_dir)
+    if not os.path.isdir(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
 
     previous_dir = os.getcwd()
-    
+
     os.chdir(log_dir)
-    if os.path.isdir('iterations') == False: os.mkdir('iterations')
-    if os.path.isdir('logs') ==False: os.mkdir('logs')
+    if not os.path.isdir('iterations'): os.mkdir('iterations')
+    if not os.path.isdir('logs'): os.mkdir('logs')
 
     log_dir = os.getcwd()
     os.chdir(working_dir)
@@ -131,10 +125,10 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
     ############################## the main training loop ##################################################################
     while num_restart < 0:
         num_restart += 1
-        
+
         # initialize nn models and optimizers and schedulers
         lambda_h, lambda_dh, lambda_d2h, eta = initialize_parameters(superp.N_H_B, superp.D_H_B)
-        barr_nn, optimizer_barr, scheduler_barr = initialize_nn(NUM_BATCHES[3], eta, lambda_h, lambda_dh)
+        barr_nn, optimizer_barr, scheduler_barr = initialize_nn(NUM_BATCHES[3], eta, lambda_h, lambda_dh, dim_s)
         optimizer_eta= torch.optim.SGD([{'params':[eta]}], lr=0.001, momentum=0)
 
 
@@ -169,31 +163,31 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 optimizer_barr.zero_grad() # clear gradient of parameters
                 optimizer_eta.zero_grad()
 
-                sigma = 0.10*torch.ones([data.DIM_S,1])
-                
-                _, _, lie_batch_loss, lie_eta_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index,eta, superp.lip_h, sigma)
+                sigma = 0.10*torch.ones([dim_s, 1])
+
+                _, _, lie_batch_loss, lie_eta_batch_loss, curr_batch_loss = loss.calc_loss(barr_nn, batch_safe, batch_unsafe, batch_domain, epoch, batch_index, eta, superp.lip_h, sigma, prob)
                 # batch_loss is a tensor, batch_gradient is a scalar
                 curr_batch_loss.backward() # compute gradient using backward()
                 # update weight and bias
                 optimizer_barr.step() # gradient descent once
-                   
+
                 optimizer_barr.zero_grad()
 
-                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambda_h, lambda_dh, lambda_d2h, superp.lip_h, superp.lip_dh, superp.lip_d2h, sigma)
-                                
+                curr_lmi_loss= loss.calc_lmi_loss(barr_nn, lambda_h, lambda_dh, lambda_d2h, superp.lip_h, superp.lip_dh, superp.lip_d2h, sigma, dim_s)
+
                 if curr_lmi_loss >= -5000:
                     curr_lmi_loss.backward()
                     optimizer_barr.step()
                     optimizer_barr.zero_grad()
-                
+
                 optimizer_eta.zero_grad()
-                
-                curr_eta_loss=  loss.calc_eta_loss(eta, superp.lip_h, superp.lip_dh, superp.lip_d2h)
-                
+
+                curr_eta_loss= loss.calc_eta_loss(eta, superp.lip_h, superp.lip_dh, superp.lip_d2h, prob.L_x, data.eps)
+
                 if curr_eta_loss > 0:
                     curr_eta_loss.backward()
                     optimizer_eta.step()
-                
+
                 # learning rate scheduling for each mini batch
                 scheduler_barr.step() # re-schedule learning rate once
 
@@ -232,5 +226,3 @@ def itr_train(batches_safe, batches_unsafe, batches_domain, NUM_BATCHES, system)
                 return True # epoch success: end of epoch training
 
     return False
-
-

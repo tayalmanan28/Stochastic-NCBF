@@ -9,6 +9,10 @@ class SimpleModel(nn.Module):
         super(SimpleModel, self).__init__()
         self.fc1 = nn.Linear(input_dim, output_dim)
 
+    @property
+    def device(self):
+        return next(self.parameters()).device
+
 
 model = SimpleModel(input_dim=3, output_dim=1)  # Example model
 
@@ -19,7 +23,7 @@ class TestLipschitzFunction(unittest.TestCase):
         lip = 0.9
         expected_output = torch.tensor([[1.0]])  # Adjust based on expected behavior
         
-        actual_output = lipschitz(lambdas, lip, model)
+        actual_output = lipschitz(lambdas, lip, model, 3)
         
         self.assertTrue(torch.allclose(actual_output, expected_output, atol=1e-4))
         
@@ -29,7 +33,7 @@ class TestLipschitzFunction(unittest.TestCase):
         lip = 0.9
         expected_output = torch.tensor([[0.0]])  # Hypothetical expected output
         
-        actual_output = lipschitz(lambdas, lip, model)
+        actual_output = lipschitz(lambdas, lip, model, 3)
         
         self.assertTrue(torch.allclose(actual_output, expected_output, atol=1e-4))
     
